@@ -1,0 +1,409 @@
+import pygame,sys
+from pygame.locals import *
+#from time_tracking import Ticker
+#from interface import Interface, Intable
+pygame.init()
+
+class Intable():
+
+    def __init__ (self, sur , pos , rect , action):
+
+        
+        self.pos = pos
+        self.rect = rect
+        self.is_pressed = 0
+
+        self.sur = sur
+        self.default_sur = self.sur
+
+        self.is_under = 0
+        self.under_sur = 0
+        
+        self.is_clicked = 0
+        self.clicked_sur = 0
+                
+        if rect:
+            self.area = rect.copy()
+            self.area.topleft = pos
+        
+        if action:
+            self.action = action        
+
+
+class Interface():
+
+    def __init__ (self , res , fullscreen):
+
+        # Screen values
+
+        self.res = res
+
+        if fullscreen:
+            self.window = pygame.display.set_mode(res,fullscreen)
+        else:
+            self.window = pygame.display.set_mode(res)
+
+        # Variables
+
+        self.origin = (0,0)
+
+        self.is_running = 0
+
+        self.print_order = {}
+
+        self.printables = {}
+
+        self.clickables = {}
+
+        self.origin = (0,0)
+
+        self.event = 0
+        self.mouse_pos = (0,0)
+        self.last_pressed = 0
+
+
+    def xy(self , tuple):
+
+        return (self.origin[0] + tuple[0] , self.origin[1] + tuple[1])
+
+    def square_frame (self, sur_size, color, width): # color != (11,11,11)
+
+        # Returns a surface
+    
+        canvas = pygame.Surface(sur_size)
+        canvas.fill((11,11,11))
+        canvas.set_colorkey((11,11,11))
+        frame_Rect = pygame.draw.rect(canvas , color , (width, width , sur_size[0] -(width*2) -1, sur_size[1] - (width*2) -1) , 2*width)
+        return canvas
+
+    def clear (self):
+        
+        canvas = pygame.Surface(self.res)
+        canvas.fill((255,255,255))
+        self.window.blit(canvas , (0,0))
+    
+    def frame (self):
+        
+        self.window.blit(self.square_frame(self.res , (25,25,255) , 3) , (0,0))
+                
+    def refresh (self):
+    
+        # Interface loop functions
+
+        self.clear()
+
+        for keyword in self.printables:
+            for button in self.printables[keyword]:
+
+                # Hover check
+                if button.rect:
+                    if button.area.collidepoint(self.mouse_pos):
+                       button.is_under = 1
+                    else:
+                        button.is_under = 0
+
+                    # Pressure check
+                    if button.is_under and pygame.mouse.get_pressed()[0]:
+                        button.is_pressed = 1
+                    else:
+                        button.is_pressed = 0
+                
+                    # Proper surface checks     
+                    
+                    if button.under_sur:
+                        if button.is_under:
+                            button.sur = button.under_sur
+                        else:
+                            button.sur = button.default_sur
+                    if button.clicked_sur:
+                        if button.is_clicked:
+                            button.sur = button.clicked_sur
+                        else:
+                            if button.under_sur:
+                                if button.is_under:
+                                    button.sur = button.under_sur
+                                else:
+                                    button.sur = button.default_sur
+                            else:
+                                button.sur = button.default_sur
+                                                    
+
+        for number in self.print_order:
+            keyword = self.print_order[number]
+
+            for word in self.printables:
+                if word == keyword:
+                    for item in self.printables[word]:
+                        self.window.blit(item.sur , self.xy(item.pos))
+        self.frame()
+        pygame.display.flip()
+
+    def loop(self):
+        pass
+
+    def stop(self):
+        pygame.quit()
+        quit()
+
+    def run(self):
+
+        self.is_running = 1
+
+        while self.is_running:
+
+            self.refresh()
+
+            self.event = pygame.event.poll()
+            self.mouse_pos = pygame.mouse.get_pos()
+
+            self.loop()
+
+            if self.event.type == pygame.QUIT:
+                self.stop()
+
+        print "Not running" # Debugg
+        pygame.quit()
+        quit()
+
+
+
+class Ticker():
+
+    def __init__(self):
+
+        self.clock = pygame.time.Clock()
+
+        self.time = 0
+        
+        self.ms = 0
+        self.s = 0
+        self.m = 0
+        self.h = 0
+
+        self.display = ''
+
+    def set_time(self, time):
+
+        self.h = time[0]
+        self.m = time[1]
+        self.s = time[2]
+
+    def update(self):
+
+        dt = self.clock.tick()
+
+        self.ms += dt
+        self.s += (self.ms)/1000
+        self.m += (self.s)/60
+        self.h += (self.m)/60
+
+        self.ms = self.ms%1000
+        self.s = self.s%60
+        self.m = self.m%60
+        self.h = self.h%24
+
+        self.display = '%s%s:%s%s:%s%s'%(self.h/10,self.h%10,self.m/10,self.m%10,self.s/10,self.s%10)
+
+
+interface = Interface((600,400),0)
+clock = Ticker()
+font = pygame.font.SysFont('couriernew',100)
+
+interface.printables['display'] = [Intable(
+    font.render(clock.display,1,(25,25,255)),(50,150) , 0 , 0)]
+interface.print_order[10] = 'display'
+
+switch = 1
+
+def turn_switch():
+    global switch
+    if switch:
+        switch = 0
+    else:
+        switch = 1
+
+def confirm_quit():
+    pass
+
+# Assets
+
+# Empty white square
+button_base = pygame.Surface((50,50))
+button_base.fill((255,255,255))
+button_base.set_colorkey((255,255,255))
+
+# Non-framed Blue Pause
+button_image0 = button_base.copy()
+pygame.draw.rect(button_image0, (25,25,255) , (12,10,10,30) , 0)
+pygame.draw.rect(button_image0, (25,25,255) , (28,10,10,30) , 0)
+
+# Framed Blue Pause
+button_image1 = button_base.copy()
+button_image1.blit(interface.square_frame((50,50),(25,25,255),2),(0,0))
+pygame.draw.rect(button_image1, (25,25,255) , (12,10,10,30) , 0)
+pygame.draw.rect(button_image1, (25,25,255) , (28,10,10,30) , 0)
+
+# Framed Grey Pause
+button_image2 = button_base.copy()
+button_image2.blit(interface.square_frame((50,50),(25,25,255),3),(0,0))
+pygame.draw.rect(button_image2, (25,25,255) , (12,10,10,30) , 0)
+pygame.draw.rect(button_image2, (25,25,255) , (28,10,10,30) , 0)
+
+# Unframed Power
+button_image3 = button_base.copy()
+rectangle = pygame.Surface((10,20))
+rectangle.fill((255,255,255))
+pygame.draw.circle(button_image3, (25,25,255), (25,25) , 15, 0)
+pygame.draw.circle(button_image3, (255,255,255), (25,25) , 11, 0)
+pygame.draw.rect(rectangle, (25,25,255) , (3,0,4,16), 0)
+button_image3.blit(rectangle,(20,8))
+
+# Framed Power
+button_image4 = button_image3.copy()
+button_image4.blit(interface.square_frame((50,50),(25,25,255),2),(0,0))
+
+# Buttons
+button0 = Intable(button_image0, (10,10) , pygame.Rect(0,0,50,50) , turn_switch)
+button0.under_sur = button_image1
+button0.clicked_sur = button_image2
+interface.printables['buttons'] = [button0]
+interface.clickables['buttons'] = [button0]
+interface.print_order[20] = 'buttons'
+
+button1 = Intable(button_image3, (600-60,10) , pygame.Rect(0,0,50,50) , interface.stop)
+button1.under_sur = button_image4
+
+interface.printables['buttons'].append(button1)
+interface.clickables['buttons'].append(button1)
+
+# Exit Prompt
+
+
+def hor_led(length,color):
+
+    canvas = pygame.Surface((length*10,length*2))
+    canvas.fill((255,255,255))
+    canvas.set_colorkey((255,255,255))
+    pygame.draw.polygon(canvas , color , [(
+        0,length) , (length,0) , (length*9, 0) , (length*10,length) , (length*9,length*2) , (length, length*2)], 0)
+    return canvas
+
+def ver_led(length,color):
+
+    canvas = pygame.Surface((length*2,length*10))
+    canvas.fill((255,255,255))
+    canvas.set_colorkey((255,255,255))
+    pygame.draw.polygon(canvas , color , [(
+        length,0) , (length*2,length) , (length*2,length*9) , (length,length*10) , (0,length*9) , (0,length)] , 0)
+    return canvas
+
+def pad(apothem,dist,hor_list,ver_list):
+    
+    digipad = pygame.Surface((12*apothem + 2*dist , 22*apothem + 4*dist))
+    digipad.fill((255,255,255))
+    digipad.set_colorkey((255,255,255))
+    if hor_list[0]:
+        digipad.blit(hor_led(apothem,(25,25,255)),(apothem + dist , 0))
+    if hor_list[1]:
+        digipad.blit(hor_led(apothem,(25,25,255)),(apothem + dist , 10*apothem + 2*dist))
+    if hor_list[2]:
+        digipad.blit(hor_led(apothem,(25,25,255)),(apothem + dist , 10*apothem + 10*apothem + 4*dist))
+    if ver_list[0]:
+        digipad.blit(ver_led(apothem,(25,25,255)),(0 , apothem + dist))
+    if ver_list[1]:
+        digipad.blit(ver_led(apothem,(25,25,255)),(10*apothem + 2*dist, apothem + dist))
+    if ver_list[2]:
+        digipad.blit(ver_led(apothem,(25,25,255)),(0 , apothem + 10*apothem + 3*dist))
+    if ver_list[3]:
+        digipad.blit(ver_led(apothem,(25,25,255)),(10*apothem +2*dist , apothem + 10*apothem +3*dist))
+        
+    return digipad
+
+def digipad(apothem,dist,digit):
+
+    if digit == 1:
+        return pad(apothem,dist,(0,0,0),(0,1,0,1))
+    if digit == 2:
+        return pad(apothem,dist,(1,1,1),(0,1,1,0))
+    if digit == 3:
+        return pad(apothem,dist,(1,1,1),(0,1,0,1))
+    if digit == 4:
+        return pad(apothem,dist,(0,1,0),(1,1,0,1))
+    if digit == 5:
+        return pad(apothem,dist,(1,1,1),(1,0,0,1))
+    if digit == 6:
+        return pad(apothem,dist,(1,1,1),(1,0,1,1))
+    if digit == 7:
+        return pad(apothem,dist,(1,0,0),(0,1,0,1))
+    if digit == 8:
+        return pad(apothem,dist,(1,1,1),(1,1,1,1))
+    if digit == 9:
+        return pad(apothem,dist,(1,1,1),(1,1,0,1))
+    if digit == 0:
+        return pad(apothem,dist,(1,0,1),(1,1,1,1))
+    else:
+        width = 2*apothem
+        canvas = pygame.Surface((width,22*apothem + 4*dist))
+        canvas.set_colorkey((0,0,0))
+        pygame.draw.rect(canvas,(25,25,255),(0,(22*apothem +4*dist)/3 - width/2,width,width),0)
+        pygame.draw.rect(canvas,(25,25,255),(0,2*(22*apothem +4*dist)/3 - width/2,width,width),0)
+        return canvas
+
+def digital_display(apothem , dist , pos , hour): # hour = (h,m,s)
+    gap = 2*apothem
+    interface.printables['display'] = []
+    for i in range(3):
+        interface.printables['display'].append(Intable(digipad(apothem,dist,hour[i]/10),(
+            pos[0] +i*(2*(14*apothem +gap)+2*gap) , pos[1]),0,0))
+        interface.printables['display'].append(Intable(digipad(apothem,dist,hour[i]%10),(
+            pos[0] +14*apothem + gap +i*(2*(14*apothem +gap)+2*gap) , pos[1]),0,0))
+
+    interface.printables['display'].append(Intable(digipad(apothem,dist,':'),(
+        pos[0] +1*(2*(14*apothem+gap))-gap/2,pos[1]),0,0))
+    interface.printables['display'].append(Intable(digipad(apothem,dist,':'),(
+        pos[0] +2*(2*(14*apothem+gap))+3*gap/2,pos[1]),0,0))
+                                                        
+
+    interface.print_order[50] = 'display'
+
+
+#digital_display(5,2,(40,200),(88,88,88))
+
+
+
+'''
+interface.printables['display2'] = [Intable(digipad(5,2,8),(200,150),0,0)]
+interface.printables['display2'].append(Intable(digipad(5,2,''),(200+80,150),0,0))
+interface.print_order[50] = 'display2'
+'''
+
+def loop():
+
+    global switch
+    if switch:
+        clock.update()
+        #interface.printables['display'][0].sur = font.render(clock.display,1,(25,25,255))
+        digital_display(5,2,(40,140),(clock.h,clock.m,clock.s))
+    pygame.time.wait(5)
+    
+    if interface.event.type == pygame.MOUSEBUTTONDOWN and interface.event.button == 1:
+        for key in interface.clickables:
+            for button in interface.clickables[key]:
+                if button.area.collidepoint(interface.mouse_pos):
+                    interface.last_pressed = button.area
+
+    if interface.event.type == pygame.MOUSEBUTTONUP:
+        if interface.last_pressed:         
+            if interface.last_pressed.collidepoint(interface.mouse_pos):
+                for key in interface.clickables:
+                    for button in interface.clickables[key]:
+                        if button.area.collidepoint(interface.mouse_pos):
+                            if button.is_clicked:
+                                button.is_clicked = 0
+                            else:
+                                button.is_clicked = 1
+                            button.action()
+
+interface.loop = loop
+interface.run()
+    
