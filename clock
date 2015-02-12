@@ -156,7 +156,7 @@ class Interface():
             self.event = pygame.event.poll()
             self.mouse_pos = pygame.mouse.get_pos()
 
-            self.loop()
+            self.loop() # Redundant?
 
             if self.event.type == pygame.QUIT:
                 self.stop()
@@ -189,10 +189,13 @@ class Ticker():
         self.s = time[2]
 
     def update(self):
+        global switch
 
         dt = self.clock.tick()
 
-        self.ms += dt
+        if switch:
+            self.ms += dt
+            
         self.s += (self.ms)/1000
         self.m += (self.s)/60
         self.h += (self.m)/60
@@ -263,7 +266,7 @@ button_image4 = button_image3.copy()
 button_image4.blit(interface.square_frame((50,50),(25,25,255),2),(0,0))
 
 # Buttons
-button0 = Intable(button_image0, (10,10) , pygame.Rect(0,0,50,50) , turn_switch)
+button0 = Intable(button_image0, (10,10) , pygame.Rect(0,0,50,50) , turn_switch) # PAUSE BUTTON HERE
 button0.under_sur = button_image1
 button0.clicked_sur = button_image2
 interface.printables['buttons'] = [button0]
@@ -379,11 +382,10 @@ interface.print_order[50] = 'display2'
 
 def loop():
 
-    global switch
-    if switch:
-        clock.update()
-        #interface.printables['display'][0].sur = font.render(clock.display,1,(25,25,255))
-        digital_display(5,2,(40,140),(clock.h,clock.m,clock.s))
+
+    clock.update()
+    #interface.printables['display'][0].sur = font.render(clock.display,1,(25,25,255))
+    digital_display(5,2,(40,140),(clock.h,clock.m,clock.s))
     pygame.time.wait(5)
     
     if interface.event.type == pygame.MOUSEBUTTONDOWN and interface.event.button == 1:
